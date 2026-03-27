@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CardioScan AI — Cardiac Risk Prediction</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f0fafa;
+    color: #0f2e2c;
+    min-height: 100vh;
+    padding: 30px 20px 60px;
+  }
+
+  .ecg-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #14b8a6, transparent);
+    animation: scan 3s linear infinite;
+    z-index: 999;
+  }
+  @keyframes scan {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  .wrapper { max-width: 980px; margin: 0 auto; }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 30px;
+  }
+  .logo {
+    width: 50px; height: 50px;
+    background: linear-gradient(135deg, #0d9488, #0284c7);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo svg { width: 26px; height: 26px; }
+  .logo-text h1 { font-size: 22px; font-weight: 700; color: #0f766e; }
+  .logo-text p  { font-size: 12px; color: #5e8c8a; margin-top: 2px; }
+  .badge {
+    margin-left: auto;
+    background: #ccf0ee;
+    color: #0f766e;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    background: #14b8a6;
+    border-radius: 50%;
+    animation: pulse 1.5s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse {
+    0%,100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.5); opacity: 0.5; }
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .stat {
+    background: #fff;
+    border: 1px solid #ccf0ee;
+    border-radius: 14px;
+    padding: 16px 18px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .stat-icon { font-size: 24px; flex-shrink: 0; }
+  .stat-val  { font-size: 18px; font-weight: 700; color: #0f2e2c; }
+  .stat-lbl  { font-size: 11px; color: #5e8c8a; margin-top: 2px; }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid #ccf0ee;
+    border-radius: 18px;
+    padding: 26px;
+    box-shadow: 0 2px 16px rgba(13,148,136,0.06);
+  }
+  .card h2   { font-size: 17px; font-weight: 700; color: #0f2e2c; margin-bottom: 4px; }
+  .card .desc{ font-size: 12px; color: #5e8c8a; margin-bottom: 20px; }
+
+  .fgrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+  }
+  .field { margin-bottom: 2px; }
+  .field.full { grid-column: span 2; }
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: #0f766e;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 12px;
+    margin-bottom: 5px;
+  }
+  .field input,
+  .field select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #ccf0ee;
+    border-radius: 9px;
+    font-size: 14px;
+    color: #0f2e2c;
+    background: #f8fffe;
+    outline: none;
+    font-family: 'Segoe UI', sans-serif;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field input:focus,
+  .field select:focus {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 3px rgba(13,148,136,0.1);
+    background: #fff;
+  }
+  .field .hint { font-size: 11px; color: #94b8b6; margin-top: 3px; }
+
+  .btn {
+    width: 100%;
+    margin-top: 20px;
+    padding: 13px;
+    background: linear-gradient(135deg, #0d9488, #0284c7);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 11px;
+    cursor: pointer;
+    font-family: 'Segoe UI', sans-serif;
+    transition: opacity 0.2s, transform 0.15s;
+    box-shadow: 0 4px 14px rgba(13,148,136,0.3);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .right { display: flex; flex-direction: column; gap: 16px; }
+
+  .result-box {
+    background: #fff;
+    border: 1px solid #ccf0ee;
+    border-radius: 18px;
+    padding: 28px 20px;
+    text-align: center;
+    box-shadow: 0 2px 16px rgba(13,148,136,0.06);
+    min-height: 170px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .result-box.normal { background: #f0fff9; border-color: #6ee7b7; }
+  .result-box.risk   { background: #fff5f5; border-color: #fca5a5; }
+
+  .idle-icon { font-size: 38px; opacity: 0.25; margin-bottom: 10px; }
+  .idle-text { font-size: 13px; color: #5e8c8a; line-height: 1.6; }
+
+  .res-emoji { font-size: 44px; margin-bottom: 8px; }
+  .res-label { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .res-label.normal { color: #059669; }
+  .res-label.risk   { color: #dc2626; }
+  .res-msg { font-size: 12px; color: #5e8c8a; line-height: 1.6; }
+
+  .meter-card {
+    background: #fff;
+    border: 1px solid #ccf0ee;
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 2px 16px rgba(13,148,136,0.06);
+  }
+  .meter-card h3 { font-size: 13px; font-weight: 700; color: #0f2e2c; margin-bottom: 14px; }
+  .meter-row { margin-bottom: 11px; }
+  .meter-top { display: flex; justify-content: space-between; font-size: 11px; color: #5e8c8a; margin-bottom: 5px; }
+  .track { height: 7px; background: #e0f7f5; border-radius: 99px; overflow: hidden; }
+  .fill  { height: 100%; border-radius: 99px; transition: width 0.8s ease; }
+  .fill.low    { background: linear-gradient(90deg, #34d399, #059669); }
+  .fill.medium { background: linear-gradient(90deg, #fbbf24, #d97706); }
+  .fill.high   { background: linear-gradient(90deg, #f87171, #dc2626); }
+
+  .info-card {
+    background: linear-gradient(135deg, rgba(13,148,136,0.07), rgba(2,132,199,0.05));
+    border: 1px solid #ccf0ee;
+    border-radius: 16px;
+    padding: 18px;
+  }
+  .info-card h3 { font-size: 11px; font-weight: 700; color: #0f766e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .info-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(13,148,136,0.1); font-size: 12px; }
+  .info-row:last-child { border-bottom: none; }
+  .info-row span:first-child { color: #5e8c8a; }
+  .info-row span:last-child  { font-weight: 600; color: #0f2e2c; }
+
+  @media (max-width: 720px) {
+    .main  { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr; }
+    .fgrid { grid-template-columns: 1fr; }
+    .field.full { grid-column: span 1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="ecg-bar"></div>
+
+<div class="wrapper">
+
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12h2l2-7 4 14 3-9 2 4 2-2h3"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <h1>CardioScan AI</h1>
+      <p>Coronary Artery Disease Risk Prediction System</p>
+    </div>
+    <div class="badge"><div class="dot"></div> ML Model Active</div>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-icon">🧠</div>
+      <div><div class="stat-val">99%</div><div class="stat-lbl">Model Accuracy</div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-icon">📊</div>
+      <div><div class="stat-val">504</div><div class="stat-lbl">Training Records</div></div>
+    </div>
+    <div class="stat">
+      <div class="stat-icon">🌿</div>
+      <div><div class="stat-val">Random Forest</div><div class="stat-lbl">Algorithm Used</div></div>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <div class="card">
+      <h2>Patient Vitals Input</h2>
+      <p class="desc">Enter clinical parameters below to assess cardiac risk.</p>
+      <form method="POST" action="/">
+        <div class="fgrid">
+
+          <div class="field">
+            <label>Age (years)</label>
+            <input type="number" name="age" placeholder="e.g. 55" value="{{ data.get('age','') }}" required>
+          </div>
+
+          <div class="field">
+            <label>Sex</label>
+            <select name="sex">
+              <option value="Male"   {% if data.get('sex')=='Male'   %}selected{% endif %}>Male</option>
+              <option value="Female" {% if data.get('sex')=='Female' %}selected{% endif %}>Female</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Weight (kg)</label>
+            <input type="number" name="weight" placeholder="e.g. 75" value="{{ data.get('weight','') }}" required>
+          </div>
+
+          <div class="field">
+            <label>Height (cm)</label>
+            <input type="number" name="height" placeholder="e.g. 170" value="{{ data.get('height','') }}" required>
+          </div>
+
+          <div class="field">
+            <label>BMI</label>
+            <input type="number" step="0.01" name="bmi" placeholder="e.g. 26.5" value="{{ data.get('bmi','') }}" required>
+            <p class="hint">kg / m²</p>
+          </div>
+
+          <div class="field">
+            <label>Temperature (°C)</label>
+            <input type="number" step="0.1" name="temperature" placeholder="e.g. 36.6" value="{{ data.get('temperature','') }}" required>
+          </div>
+
+          <div class="field">
+            <label>Heart Rate (bpm)</label>
+            <input type="number" name="heart_rate" placeholder="e.g. 72" value="{{ data.get('heart_rate','') }}" required>
+          </div>
+
+          <div class="field">
+            <label>SPO2 (%)</label>
+            <input type="number" name="spo2" placeholder="e.g. 98" value="{{ data.get('spo2','') }}" required>
+            <p class="hint">Oxygen saturation</p>
+          </div>
+
+          <div class="field full">
+            <label>ECG Result</label>
+            <select name="ecg">
+              <option value="0" {% if data.get('ecg')=='0' %}selected{% endif %}>0 — Normal</option>
+              <option value="1" {% if data.get('ecg')=='1' %}selected{% endif %}>1 — Abnormal</option>
+            </select>
+          </div>
+
+        </div>
+
+        <button type="submit" class="btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          Analyse Cardiac Risk
+        </button>
+      </form>
+    </div>
+
+    <div class="right">
+
+      <div class="result-box {% if result %}{{ 'normal' if result == 'Normal' else 'risk' }}{% endif %}">
+        {% if result %}
+          <div class="res-emoji">{{ '💚' if result == 'Normal' else '❤️' }}</div>
+          <div class="res-label {{ 'normal' if result == 'Normal' else 'risk' }}">{{ result }}</div>
+          <p class="res-msg">
+            {% if result == 'Normal' %}
+              Patient vitals are within healthy range. No immediate cardiac risk detected.
+            {% else %}
+              Elevated cardiac risk detected. Immediate physician consultation advised.
+            {% endif %}
+          </p>
+        {% else %}
+          <div class="idle-icon">💓</div>
+          <p class="idle-text">Enter patient vitals<br>and click Analyse</p>
+        {% endif %}
+      </div>
+
+      <div class="meter-card">
+        <h3>Risk Indicator</h3>
+        {% if result == 'Normal' %}
+          {% set lw = 85 %}{% set mw = 10 %}{% set hw = 5 %}
+        {% elif result == 'At Risk' %}
+          {% set lw = 10 %}{% set mw = 25 %}{% set hw = 85 %}
+        {% else %}
+          {% set lw = 10 %}{% set mw = 5 %}{% set hw = 3 %}
+        {% endif %}
+        <div class="meter-row">
+          <div class="meter-top"><span>Low Risk</span><span>{{ lw }}%</span></div>
+          <div class="track"><div class="fill low" style="width:{{ lw }}%"></div></div>
+        </div>
+        <div class="meter-row">
+          <div class="meter-top"><span>Medium Risk</span><span>{{ mw }}%</span></div>
+          <div class="track"><div class="fill medium" style="width:{{ mw }}%"></div></div>
+        </div>
+        <div class="meter-row">
+          <div class="meter-top"><span>High Risk</span><span>{{ hw }}%</span></div>
+          <div class="track"><div class="fill high" style="width:{{ hw }}%"></div></div>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <h3>Model Info</h3>
+        <div class="info-row"><span>Algorithm</span><span>Random Forest</span></div>
+        <div class="info-row"><span>Estimators</span><span>100 Trees</span></div>
+        <div class="info-row"><span>Accuracy</span><span>99.01%</span></div>
+        <div class="info-row"><span>Dataset</span><span>504 Records</span></div>
+        <div class="info-row"><span>Features</span><span>9 Parameters</span></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
