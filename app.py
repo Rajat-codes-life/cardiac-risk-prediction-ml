@@ -31,6 +31,7 @@ def index():
         result = 'At Risk' if pred == 1 else 'Normal'
     return render_template('index.html', result=result, data=input_data)
 
-import webbrowser
-webbrowser.open('http://127.0.0.1:5000')
-app.run(debug=True)
+if __name__ == "__main__":
+    import webbrowser
+    webbrowser.open('http://127.0.0.1:5000')
+    app.run(debug=True)
